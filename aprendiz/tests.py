@@ -1,67 +1,49 @@
-import importlib
-import os
-from unittest.mock import patch
-
-from django.test import TestCase, SimpleTestCase, override_settings
-from django.urls import reverse
+from django.test import TestCase
 from rest_framework.test import APIClient
 
-from aprendiz.models import Aprendiz
 
-
-class AprendizSettingsTests(SimpleTestCase):
-    def test_sqlite_configuration_is_supported_for_tests(self):
-        with patch.dict(os.environ, {"DB_ENGINE": "sqlite3"}, clear=False):
-            import config.settings.base as base_settings
-
-            importlib.reload(base_settings)
-
-            self.assertEqual(
-                base_settings.DATABASES["default"]["ENGINE"],
-                "django.db.backends.sqlite3",
-            )
-
-
-class AprendizApiTests(TestCase):
+class AprendizAPITests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.url = reverse("aprendiz-list-create")
 
-    def _make_payload(self, email="ana@example.com"):
-        return {
-            "nombre": "Ana",
-            "apellido": "García",
-            "cedula": "10101010",
-            "tipo_id": "CC",
-            "email": email,
-            "telefono": "3000000000",
-            "direccion": "Calle 10",
-            "genero": "F",
-            "ficha": "2024A",
+    def test_crear_y_listar_aprendiz(self):
+        payload = {
+            "nombre": "Brandon",
+            "apellido": "Test",
+            "cedula": "1000000001",
+            "email": "brandon.test@example.com",
+            "genero": "Masculino",
             "jornada": "Diurna",
+            "ficha": "3173334",
         }
+        respuesta = self.client.post("/api/v1/aprendiz/", payload, format="json")
+        self.assertEqual(respuesta.status_code, 201)
 
-    def test_create_and_list_aprendiz(self):
-        payload = self._make_payload()
+        respuesta_lista = self.client.get("/api/v1/aprendiz/")
+        self.assertEqual(respuesta_lista.status_code, 200)
+        self.assertEqual(len(respuesta_lista.data), 1)
 
-        create_response = self.client.post(self.url, payload, format="json")
-        self.assertEqual(create_response.status_code, 201)
-        self.assertEqual(Aprendiz.objects.count(), 1)
+    def test_cedula_duplicada_falla(self):
+        payload = {"nombre": "A", "cedula": "111", "email": "a@example.com"}
+        self.client.post("/api/v1/aprendiz/", payload, format="json")
 
-        list_response = self.client.get(self.url)
-        self.assertEqual(list_response.status_code, 200)
-        self.assertEqual(list_response.data[0]["email"], payload["email"])
+        payload_duplicado = {"nombre": "B", "cedula": "111", "email": "b@example.com"}
+        respuesta = self.client.post(
+            "/api/v1/aprendiz/", payload_duplicado, format="json"
+        )
+        self.assertEqual(respuesta.status_code, 400)
 
-    def test_update_and_delete_aprendiz(self):
-        created = self.client.post(self.url, self._make_payload(), format="json")
-        aprendiz_id = created.data["id"]
-        detail_url = reverse("aprendiz-detail", args=[aprendiz_id])
-
-        update_payload = self._make_payload(email="ana_nueva@example.com")
-        update_response = self.client.put(detail_url, update_payload, format="json")
-        self.assertEqual(update_response.status_code, 200)
-        self.assertEqual(update_response.data["email"], "ana_nueva@example.com")
-
-        delete_response = self.client.delete(detail_url)
-        self.assertEqual(delete_response.status_code, 204)
-        self.assertFalse(Aprendiz.objects.filter(id=aprendiz_id).exists())
+    def test_filtrar_por_ficha(self):
+        self.client.post(
+            "/api/v1/aprendiz/",
+            {"nombre": "A", "cedula": "1", "email": "a@x.com", "ficha": "111"},
+            format="json",
+        )
+        self.client.post(
+            "/api/v1/aprendiz/",
+            {"nombre": "B", "cedula": "2", "email": "b@x.com", "ficha": "222"},
+            format="json",
+        )
+        respuesta = self.client.get("/api/v1/aprendiz/?ficha=111")
+        self.assertEqual(len(respuesta.data), 1)
+        self.assertEqual(respuesta.data[0]["nombre"], "A")

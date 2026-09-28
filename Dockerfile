@@ -1,6 +1,6 @@
 # ============================================================
-# Imagen para la aplicacion Django (equivalente al Dockerfile
-# original de Spring Boot, pero para Python/Django).
+# Imagen del backend Django (API propia, no un puerto del
+# Spring Boot anterior — mismas funciones, arquitectura Django).
 # ============================================================
 FROM python:3.12-slim
 
@@ -9,9 +9,9 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# Dependencias de sistema necesarias para compilar mysqlclient
-# y para que el contenedor pueda esperar a que la base de datos
-# este lista (default-mysql-client trae el comando 'mysqladmin').
+# build-essential + default-libmysqlclient-dev + pkg-config: para
+# compilar mysqlclient. default-mysql-client: trae 'mysqladmin',
+# usado por entrypoint.sh para esperar a que MySQL esté listo.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     default-libmysqlclient-dev \
@@ -24,13 +24,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Ahora copiamos el resto del codigo fuente
+# Ahora copiamos el resto del código fuente.
+# (.dockerignore excluye .venv, __pycache__, .env, etc.)
 COPY . .
 
-COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
-# Mismo puerto que exponia el proyecto Spring Boot original
 EXPOSE 8080
 
 ENTRYPOINT ["/app/entrypoint.sh"]

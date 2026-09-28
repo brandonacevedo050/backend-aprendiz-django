@@ -1,16 +1,15 @@
 """
-WSGI config for config project.
+Configuración WSGI para el proyecto 'config'.
 
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/6.1/howto/deployment/wsgi/
+Expone la variable a nivel de módulo `application`, que es lo que
+Gunicorn usa para servir la aplicación (ver entrypoint.sh:
+`gunicorn config.wsgi:application`).
 """
 
 import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 application = get_wsgi_application()

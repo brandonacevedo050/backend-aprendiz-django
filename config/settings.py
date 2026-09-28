@@ -1,16 +1,23 @@
 """
-Configuracion de Django para el proyecto 'config' (equivalente al
-proyecto Spring Boot original, ahora en Django + Django REST Framework).
+Configuración de Django para el proyecto 'config'.
+
+Backend propio en Django + Django REST Framework para el CRUD de
+Aprendices. No es un puerto 1:1 de Spring Boot: usa las convenciones
+naturales de Django (apps, ORM, DRF) para cumplir la misma función.
 """
 
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
+# --------------------------------------------------------------------
+# Seguridad básica
+# --------------------------------------------------------------------
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "django-insecure-dyv_h2&-*^g0t6$(x4+okzwch4kdp2vtqj74m3tvok!p7ladg4",
@@ -20,8 +27,9 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*").split(",")
 
-# Application definition
-
+# --------------------------------------------------------------------
+# Aplicaciones instaladas
+# --------------------------------------------------------------------
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -64,11 +72,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# --------------------------------------------------------------------
 # Base de datos
-# Se admite MySQL para Docker/produccion y SQLite como fallback para
-# desarrollo local y ejecucion de tests sin una instancia de MySQL activa.
-# Base de datos
-DB_ENGINE = os.environ.get("DB_ENGINE", "mysql").lower()
+#
+# IMPORTANTE: mantenemos MySQL como backend principal y añadimos
+# soporte opcional para MongoDB mediante PyMongo. La selección no se
+# hace en el frontend; se hace por variables de entorno.
+# --------------------------------------------------------------------
+DB_ENGINE = os.environ.get("DATABASE_ENGINE", os.environ.get("DB_ENGINE", "mysql")).lower()
 
 if DB_ENGINE == "mysql":
     DATABASES = {
@@ -79,19 +90,24 @@ if DB_ENGINE == "mysql":
             "PASSWORD": os.environ.get("DB_PASSWORD", ""),
             "HOST": os.environ.get("DB_HOST", "localhost"),
             "PORT": os.environ.get("DB_PORT", "3306"),
-            "OPTIONS": {
-                "charset": "utf8mb4",
-            },
+            "OPTIONS": {"charset": "utf8mb4"},
+        }
+    }
+elif DB_ENGINE == "mongodb":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.dummy",
         }
     }
 else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
-    
+    raise ImproperlyConfigured(
+        "DATABASE_ENGINE debe ser 'mysql' o 'mongodb'; "
+        f"se recibió {DB_ENGINE!r}."
+    )
+
+MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
+MONGODB_NAME = os.environ.get("MONGODB_NAME", "aprendiz")
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -109,8 +125,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# CORS: equivalente a @CrossOrigin("http://localhost:5173/") del
-# controller original.
+# --------------------------------------------------------------------
+# CORS: permite que el frontend en React (Vite, puerto 5173) consuma
+# esta API desde el navegador.
+# --------------------------------------------------------------------
 CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS", "http://localhost:5173"
 ).split(",")

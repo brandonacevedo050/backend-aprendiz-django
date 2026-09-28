@@ -1,9 +1,7 @@
+﻿.venv/
 __pycache__/
-*.pyc
-*.pyo
-*.sqlite3
+*.py[cod]
 .env
-staticfiles/
-venv/
-.venv/
+.vscode/
 .idea/
+*.log
