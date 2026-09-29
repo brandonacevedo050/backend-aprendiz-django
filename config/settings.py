@@ -126,12 +126,19 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --------------------------------------------------------------------
-# CORS: permite que el frontend en React (Vite, puerto 5173) consuma
-# esta API desde el navegador.
+# CORS: lista de orígenes separados por coma. En producción, configura
+# aquí el dominio HTTPS del frontend en Vercel mediante el entorno.
 # --------------------------------------------------------------------
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:5173"
-).split(",")
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "CORS_ALLOWED_ORIGINS", "http://localhost:5173"
+    ).split(",")
+    if origin.strip()
+]
+CORS_ALLOW_ALL_ORIGINS = os.environ.get(
+    "CORS_ALLOW_ALL_ORIGINS", "false"
+).lower() == "true"
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [

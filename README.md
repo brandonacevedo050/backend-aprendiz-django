@@ -95,6 +95,20 @@ Request HTTP → urls.py → views.py (Controller)
    frontend, asegúrate de que `API_BASE` en `aprendizService.js`
    apunte al puerto que estés usando realmente.
 
+## Despliegue en Vercel y Render
+
+En Render, configura estas variables de entorno para el servicio Django:
+
+| Variable | Valor |
+|----------|-------|
+| `CORS_ALLOWED_ORIGINS` | Origen exacto de Vercel, por ejemplo `https://mi-app.vercel.app` (sin ruta ni `/` final) |
+| `CORS_ALLOW_ALL_ORIGINS` | `false` |
+| `DJANGO_ALLOWED_HOSTS` | Host del backend, por ejemplo `mi-api.onrender.com` (sin `https://`) |
+
+Para una prueba temporal de CORS, puedes poner `CORS_ALLOW_ALL_ORIGINS=true`, desplegar y comprobar la petición. Después cámbialo a `false` y configura el origen exacto de Vercel en `CORS_ALLOWED_ORIGINS`; reinicia o redespliega el servicio para aplicar las variables. No mantengas habilitado el modo permisivo en producción.
+
+La ruta de colección definida por este backend es `/api/v1/aprendiz/` (por ejemplo, `https://mi-api.onrender.com/api/v1/aprendiz/`), no `/aprendiz/`.
+
 ## Ejecutar las pruebas
 
 ```powershell
